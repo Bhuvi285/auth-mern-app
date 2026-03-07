@@ -104,3 +104,28 @@ CRA automatically runs `git init` in the new project folder because it assumes y
 ### How to avoid this next time
 
 After running `npx create-react-app frontend`, immediately delete the `.git` folder inside it before doing your first `git add .` in the parent folder.
+
+---
+
+## Backend Dependencies
+
+### Install Command
+
+```bash
+npm i express jsonwebtoken bcrypt body-parser dotenv mongoose joi cors
+```
+
+### Library Reference
+
+| Library | Used Where | Purpose |
+|---|---|---|
+| `express` | Entire backend | Creates the server and defines routes (`/signup`, `/login`, `/products`) |
+| `jsonwebtoken` | `/login` + middleware | Generates JWT token on login, verifies it on every protected route |
+| `bcrypt` | `/signup` + `/login` | Hashes password before saving, compares password on login |
+| `body-parser` | App setup | Parses incoming JSON request body so `req.body` is available |
+| `dotenv` | App setup | Loads `.env` file so you can use `process.env.JWT_SECRET`, `process.env.MONGO_URI` |
+| `mongoose` | `/signup` + `/login` | Connects to MongoDB, defines User schema, saves and queries users |
+| `joi` | `/signup` + `/login` | Validates request body (email format, password length) before any logic runs |
+| `cors` | App setup | Allows the React frontend (`localhost:3000`) to call the Express backend (different port) |
+
+> **Note:** Express 4.16+ has `body-parser` built-in via `express.json()`. Having it as a separate package is fine but not required.
