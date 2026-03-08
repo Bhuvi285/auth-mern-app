@@ -29,7 +29,7 @@ const loginValidation = ( req , res , next) =>{
     next();
 }
 
-module.export = {
+module.exports = {
     signupValidation , 
     loginValidation
 }
