@@ -1,7 +1,6 @@
-const { required } = require('joi');
 const mongoose = require('mongoose');
 
-const Schema = mongoose.Schema;
+const Schema = mongoose.Schema; // defines what fields exist and their rules
 
 const UserSchema =  new Schema({
 
