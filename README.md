@@ -289,3 +289,107 @@ schema.validate()   checks req.body against the rules
 error exists?   YES → return 400, stop here
                 NO  → call next(), continue to controller
 ```
+
+---
+
+## Signup & Login — Complete Feature Flow
+
+### Signup Flow
+
+```
+User fills the form (name, email, password)
+          ↓
+Frontend validates the form (client-side)
+  → name not empty, email valid, password min length
+  → if invalid → show error, STOP here
+          ↓
+Frontend calls POST /signup with { name, email, password }
+          ↓
+Backend: Joi middleware validates req.body (server-side)
+  → if invalid → return 400, STOP here
+          ↓
+Backend: Check if email already exists in MongoDB
+  → if exists → return 409 "User already exists", STOP here
+          ↓
+Backend: Hash the password with bcrypt
+  → "1234" becomes "$2b$10$abc..."
+          ↓
+Backend: Save new user to MongoDB
+  → { name, email, password: "$2b$10$abc..." }
+          ↓
+Backend: Return 201 { success: true }
+          ↓
+Frontend: Redirect to /login page
+```
+
+---
+
+### Login Flow
+
+```
+User fills the form (email, password)
+          ↓
+Frontend validates the form (client-side)
+  → email valid, password not empty
+  → if invalid → show error, STOP here
+          ↓
+Frontend calls POST /login with { email, password }
+          ↓
+Backend: Joi middleware validates req.body (server-side)
+  → if invalid → return 400, STOP here
+          ↓
+Backend: Find user by email in MongoDB
+  → if not found → return 401 "User does not exist", STOP here
+          ↓
+Backend: Compare incoming password with stored hashed password
+  → bcrypt.compare("1234", "$2b$10$abc...")
+  → if no match → return 401 "Wrong password", STOP here
+          ↓
+Backend: Generate JWT token
+  → jwt.sign({ email, _id }, JWT_SECRET, { expiresIn: "24h" })
+          ↓
+Backend: Return 200 { success: true, token, name }
+          ↓
+Frontend: Store token in localStorage
+  → localStorage.setItem("token", token)
+  → localStorage.setItem("name", name)
+          ↓
+Frontend: Redirect to /home page
+```
+
+---
+
+### After Login — Every Protected Page Request
+
+```
+User visits /home
+          ↓
+Frontend: Check if token exists in localStorage
+  → if no token → redirect to /login, STOP here
+          ↓
+Frontend: Call GET /products with token in header
+  → headers: { authorization: token }
+          ↓
+Backend: JWT middleware intercepts the request
+  → reads token from header
+  → jwt.verify(token, JWT_SECRET)
+  → if invalid/expired → return 401, STOP here
+          ↓
+Backend: Token is valid → allow request to continue
+          ↓
+Backend: Return products data
+          ↓
+Frontend: Display products on the page
+```
+
+---
+
+### Key Concepts to Remember
+
+| Operation | What happens |
+|---|---|
+| Signup | Hash the password and store the user |
+| Login | Verify password → issue JWT token |
+| Protected routes | Verify JWT token → serve data |
+
+The **JWT token is proof of identity** after login. Instead of sending email and password on every request, you send the token. The server trusts it because only it knows the secret used to sign it.
