@@ -1,11 +1,8 @@
 const router = require('express').Router();
-const {signupValidation} = require('../Middleware/AuthValidation.js')
-const {signup} = require('../Controllers/AuthController.js')
+const {signupValidation, loginValidation} = require('../Middleware/AuthValidation.js')
+const {signup, login} = require('../Controllers/AuthController.js')
 
-router.post('/login' , (req , res)=>{
-    res.send("Login Success")
-});
-
+router.post('/login' , loginValidation , login);
 router.post('/signup' , signupValidation , signup);
 
 module.exports = router;
