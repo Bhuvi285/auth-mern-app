@@ -29,9 +29,10 @@ const login = async (req, res) => {
         //check  if the user exists in database 
         const { email, password } = req.body;
         const user = await UserModel.findOne({ email });
-        const errorMsg = "Auth failed email or password is wrong⚠️";
+        
 
         //if user doesnt exists then return error 
+        const errorMsg = "Auth failed email or password is wrong⚠️";
         if (!user) {
             return res.status(403).json({ message: errorMsg, sucess: false });
         }
