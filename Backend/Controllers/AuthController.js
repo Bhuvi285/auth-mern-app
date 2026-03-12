@@ -27,9 +27,9 @@ const login = async (req, res) => {
     try {
 
         //check  if the user exists in database 
-        const { name, email, password } = req.body;
+        const { email, password } = req.body;
         const user = await UserModel.findOne({ email });
-        const errorMsg = 'Auth failed email or password is wrong⚠️';
+        const errorMsg = "Auth failed email or password is wrong⚠️";
 
         //if user doesnt exists then return error 
         if (!user) {
@@ -39,14 +39,14 @@ const login = async (req, res) => {
         //Compare incoming password with stored hashed password
         const isPassEqual = await bcrypt.compare(password, user.password); //in this line the password coming from the client is passed as the "password" and the password stored in database is passed as the "user.password "
         if (!isPassEqual) {
-            return res.status(403).json({ message: errorMsg, sucess: false });
+            return res.status(403).json({ message: errorMsg, success: false });
         }
 
         //Generate JWT token
         const jwtToken = jwt.sign(
             { email: user.email, _id: user._id },
             process.env.JWT_SECRET,
-            { expiredIn: '24h' }
+            { expiresIn: '24h' }
         )
 
         res.status(200)
