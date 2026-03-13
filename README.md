@@ -393,3 +393,137 @@ Frontend: Display products on the page
 | Protected routes | Verify JWT token → serve data |
 
 The **JWT token is proof of identity** after login. Instead of sending email and password on every request, you send the token. The server trusts it because only it knows the secret used to sign it.
+
+---
+
+## JWT — How It Works
+
+### Why Do We Need JWT?
+
+HTTP is **stateless** — the server has no memory of who you are between requests. Without JWT this would happen:
+
+```
+Request 1: Login with email/password → server says OK
+Request 2: Get /products → server says "who are you? I don't know you"
+```
+
+JWT solves this by giving the frontend a **proof of identity** after login, which it sends on every future request.
+
+---
+
+### What is a JWT Token?
+
+A JWT is a long string made of 3 parts separated by dots:
+
+```
+header.payload.signature
+eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6InhAZ21haWwuY29tIn0.SIGNATURE
+```
+
+| Part | Contains | Secret? |
+|---|---|---|
+| Header | Algorithm used to sign the token (HS256) | No |
+| Payload | Data baked in — `{ email, _id, expiresIn }` | No — anyone can decode it |
+| Signature | Header + Payload + JWT_SECRET hashed together | Yes — only your server can verify it |
+
+> **Never put passwords in the payload.** It is readable by anyone.
+
+---
+
+### The Server NEVER Stores the JWT Token
+
+This is the most important thing to understand. Here is exactly where the token lives at each stage:
+
+```
+LOGIN
+  Server creates token → sends to frontend → forgets it completely
+  Frontend stores token in localStorage
+
+EVERY PROTECTED REQUEST
+  Frontend sends token in request header
+  Server verifies it → forgets it again
+
+LOGOUT
+  Frontend deletes token from localStorage
+  Server does nothing — it never had the token
+```
+
+---
+
+### What Lives Where
+
+| What | MongoDB | Server | Frontend |
+|---|---|---|---|
+| name, email | ✅ Yes | ❌ No | ❌ No |
+| Hashed password | ✅ Yes | ❌ No | ❌ No |
+| JWT Token | ❌ Never | ❌ Never | ✅ localStorage |
+| JWT_SECRET | ❌ Never | ✅ .env file only | ❌ No |
+
+---
+
+### How JWT Works in This Project
+
+**On Login — token is CREATED:**
+```
+User logs in successfully
+          ↓
+jwt.sign({ email, _id }, JWT_SECRET, { expiresIn: '24h' })
+          ↓
+Token "eyJhbGci..." sent to frontend
+          ↓
+Frontend stores in localStorage
+```
+
+**On every protected request — token is VERIFIED:**
+```
+Frontend sends GET /products
+with header: { authorization: "eyJhbGci..." }
+          ↓
+JWT Middleware intercepts
+          ↓
+jwt.verify(token, JWT_SECRET)
+          ↓ invalid/expired → return 401, STOP
+          ↓ valid → continue to controller → return data
+```
+
+---
+
+### Why JWT and Not a Random String?
+
+A random string token requires a database lookup on every request to check if it is valid. JWT does not — the server just verifies the signature using `JWT_SECRET`. No database hit needed.
+
+```
+Random token:   Request → check database → serve data
+JWT token:      Request → verify signature → serve data
+                                ↑ no database involved
+```
+
+---
+
+### What Makes JWT Secure?
+
+If a hacker tries to fake a token with `{ email: "admin@gmail.com" }`:
+- They don't know `JWT_SECRET`
+- They cannot create a valid signature
+- `jwt.verify()` fails → request rejected with 401
+
+Any change to the payload breaks the signature. The token cannot be tampered with.
+
+---
+
+### Complete JWT Lifecycle
+
+```
+SIGNUP      →   no token involved, just save user
+
+LOGIN       →   verify password → create token → send to frontend
+
+PROTECTED   →   frontend sends token → middleware verifies
+REQUESTS        → valid   → serve data
+                → invalid → 401
+
+LOGOUT      →   frontend deletes token from localStorage
+                server does nothing
+```
+
+> **One line summary:** JWT is a signed proof of identity that the server creates on login, the frontend carries on every request, and the server verifies without touching the database.
