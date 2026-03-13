@@ -32,7 +32,7 @@ const login = async (req, res) => {
         
 
         //if user doesnt exists then return error 
-        const errorMsg = "Auth failed email or password is wrong⚠️";
+        const errorMsg = "Auth failed , email or password is wrong⚠️";
         if (!user) {
             return res.status(403).json({ message: errorMsg, sucess: false });
         }
