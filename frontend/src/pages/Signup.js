@@ -28,7 +28,7 @@ function Signup() {
                         name='password'
                         placeholder='Enter your password....' />
                 </div>
-                <button>Signup</button>
+                <button className='glow-on-hover'>Signup</button>
                 <span>Already have an account?
                     <Link to="/login">Login</Link>
                 </span>
