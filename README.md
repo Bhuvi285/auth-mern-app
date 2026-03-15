@@ -527,3 +527,57 @@ LOGOUT      →   frontend deletes token from localStorage
 ```
 
 > **One line summary:** JWT is a signed proof of identity that the server creates on login, the frontend carries on every request, and the server verifies without touching the database.
+
+---
+
+## Protected Route Flow — GET /products
+
+### How the 3 Files Work Together
+
+```
+index.js         →   receives request, routes to ProductsRouter
+Auth.js          →   middleware, checks JWT token first
+ProductsRouter   →   returns products only if token is valid
+```
+
+### Complete Request Flow
+
+```
+Frontend sends:
+GET /products
+headers: { authorization: "eyJhbGci..." }
+          ↓
+index.js sees /products → hands to ProductsRouter
+          ↓
+ProductsRouter sees ensureAuthenticated → runs Auth.js first
+          ↓
+Auth.js: reads token from headers
+          ↓ no token      → 403 "JWT token is required", STOP
+          ↓ token exists  → jwt.verify(token, JWT_SECRET)
+               ↓ fails    → 401 "JWT token wrong or expired", STOP
+               ↓ passes   → decoded = { email, _id }
+                          → req.user = decoded
+                          → next()
+          ↓
+Route handler runs
+  → console.log(req.user) prints { email, _id }
+  → returns 200 with products array
+          ↓
+Frontend receives products
+```
+
+### Why `req.user`?
+
+`Auth.js` sets `req.user = decoded` before calling `next()`. This passes the decoded JWT payload (email, _id) forward through the `req` object into the route handler. This is how the route handler knows who made the request without touching the database.
+
+### Why `ensureAuthenticated` is Reusable
+
+It is written once in `Auth.js` and plugged into any route that needs protection:
+
+```
+router.get('/products', ensureAuthenticated, handler)
+router.get('/orders',   ensureAuthenticated, handler)
+router.get('/profile',  ensureAuthenticated, handler)
+```
+
+One bug fix in `Auth.js` fixes all protected routes at once.
