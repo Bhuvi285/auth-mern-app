@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const AuthRouter = require('./Routes/AuthRouter');
 const ProductsRouter = require('./Routes/ProductsRouter');
+const dns = require('dns');
+
+dns.setServers(["1.1.1.1" , "8.8.8.8"]);
 
 
 require('dotenv').config(); // Load environment variables from .env file
