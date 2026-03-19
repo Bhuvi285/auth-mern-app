@@ -48,9 +48,11 @@ function Home() {
       <div>
         {
           products && products?.map ((item, index) => {
+            return(
             <ul key={index}>
               <span>{item.name}: {item.price}</span>
             </ul>
+            )
           })
         }
       </div>
