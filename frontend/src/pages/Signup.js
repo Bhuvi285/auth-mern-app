@@ -27,7 +27,7 @@ function Signup() {
             return handleError('All fields are required!!');
         }
         try {
-            const url = "https://auth-mern-app-api-zeta.vercel.app/auth/signup";
+            const url = "https://auth-mern-app-w7ua.onrender.com/auth/signup";
             const response = await fetch(url ,{
                 method:"POST" , 
                 headers: {
