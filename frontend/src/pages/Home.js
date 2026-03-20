@@ -23,7 +23,7 @@ function Home() {
 
   const fetchProducts = async () => {
     try {
-      const url = "https://auth-mern-app-api-zeta.vercel.app/products";
+      const url = "https://auth-mern-app-w7ua.onrender.com/products";
       const headers = {
         headers: {
           'Authorization': localStorage.getItem('token')
