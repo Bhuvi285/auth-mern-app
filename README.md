@@ -1242,51 +1242,67 @@ Redirected to /login
 
 ---
 
-## Deploying to Vercel
+## Deployment
 
-The project has two separate deployments on Vercel — one for the backend and one for the frontend. Each has its own `vercel.json` configuration file.
-
----
-
-### Why Two Separate Deployments?
-
-Backend and frontend are completely separate projects with different tech stacks. Backend runs Node.js on a server. Frontend is a static React build served from a CDN. Vercel handles both but they need to be deployed independently.
+Backend and frontend are deployed separately — backend on **Render**, frontend on **Vercel**.
 
 ```
 auth-mern-app/
-├── Backend/    → deploys as a Node.js serverless app
-└── Frontend/   → deploys as a static React site
+├── Backend/    → deployed on Render (Node.js server)
+└── Frontend/   → deployed on Vercel (React SPA)
 ```
 
 ---
 
-### Backend — `vercel.json`
+## Backend Deployment — Render
 
-```json
-{
-    "version": 2,
-    "builds": [{ "src": "index.js", "use": "@vercel/node" }],
-    "routes": [{ "src": "/(.*)", "dest": "index.js" }]
-}
-```
+Render automatically detects Node.js projects. No config file needed — unlike Vercel, there is no `vercel.json` required.
 
-**Line by line:**
+### Steps
 
-| Field | Purpose |
+**1. Go to render.com → New → Web Service → Connect GitHub repo**
+
+**2. Configure the service:**
+
+| Setting | Value |
 |---|---|
-| `"version": 2` | Tells Vercel to use configuration version 2 (current standard) |
-| `"builds"` | Tells Vercel how to build the project |
-| `"src": "index.js"` | The entry point of your backend — where the Express server starts |
-| `"use": "@vercel/node"` | Tells Vercel to treat this as a Node.js app |
-| `"routes"` | Defines how incoming URLs are handled |
-| `"src": "/(.*)"` | Matches every URL — `(.*)` means any path |
-| `"dest": "index.js"` | Send every request to `index.js` — Express then handles routing |
+| Root Directory | `Backend` |
+| Runtime | Node |
+| Build Command | `npm install` |
+| Start Command | `node index.js` |
 
-Without `routes`, Vercel wouldn't know to send `/auth/login` or `/products` to your Express app. This config says "no matter what URL is hit, hand it to `index.js`".
+Root Directory must be set to `Backend` because your server code is inside that folder, not at the root of the repo.
+
+**3. Add Environment Variables in Render dashboard:**
+
+| Key | Value |
+|---|---|
+| `MONGO_URI` | your MongoDB Atlas connection string |
+| `JWT_SECRET` | your JWT secret key (no quotes) |
+| `PORT` | 8080 |
+
+This replaces your `.env` file in production. Never push `.env` to GitHub — Render reads these values directly from its dashboard.
+
+**4. Click Deploy → get your live URL:**
+`https://your-backend.onrender.com`
+
+### Important — Free Tier Behaviour
+
+Render's free tier spins down the server after 15 minutes of inactivity. The first request after that takes 30-60 seconds to wake up. This is normal on free tier — paid tier keeps it always running.
+
+### `.env` Values — No Quotes
+
+Values in `.env` and in Render's environment variables must be written without quotes:
+```
+JWT_SECRET=mysecretkey       ← correct
+JWT_SECRET="mysecretkey"     ← wrong, quotes become part of the value
+```
 
 ---
 
-### Frontend — `vercel.json`
+## Frontend Deployment — Vercel
+
+### `vercel.json`
 
 ```json
 {
@@ -1294,24 +1310,20 @@ Without `routes`, Vercel wouldn't know to send `/auth/login` or `/products` to y
 }
 ```
 
-**Line by line:**
-
 | Field | Purpose |
 |---|---|
 | `"rewrites"` | Redirects requests to a different destination without changing the URL |
 | `"source": "/(.*)"` | Matches every URL the user visits |
 | `"destination": "/index.html"` | Always serve `index.html` regardless of the URL |
 
-**Why is this needed?**
+### Why is this needed?
 
-React is a Single Page Application (SPA) — there is only ONE actual HTML file (`index.html`). React Router handles `/login`, `/signup`, `/home` entirely in the browser using JavaScript. These are not real server-side pages.
+React is a Single Page Application (SPA) — there is only ONE actual HTML file (`index.html`). React Router handles `/login`, `/signup`, `/home` entirely in the browser. These are not real server-side pages.
 
-Without this config, if a user visits `yourapp.vercel.app/home` directly or refreshes the page, Vercel looks for an actual `/home` file on the server, finds nothing, and returns a 404 error.
-
-With this config, every URL always serves `index.html` and React Router takes over from there.
+Without this config, if a user visits `yourapp.vercel.app/home` directly or refreshes the page, Vercel looks for an actual `/home` file on the server, finds nothing, and returns 404.
 
 ```
-User visits /home directly in browser
+User visits /home directly
           ↓
 Without vercel.json → Vercel looks for /home file → 404 NOT FOUND
           ↓
@@ -1323,19 +1335,19 @@ With vercel.json    → Vercel serves index.html → React Router
 
 ### After Deploying — Update API URLs
 
-Once both are deployed, your frontend API calls need to point to the live backend URL instead of `localhost`:
+Frontend API calls must point to the live Render backend URL instead of localhost:
 
 ```
 Before (local):
-"http://localhost:8181/auth/login"
-"http://localhost:8181/products"
+"http://localhost:8080/auth/login"
+"http://localhost:8080/products"
 
 After (production):
-"https://your-backend.vercel.app/auth/login"
-"https://your-backend.vercel.app/products"
+"https://your-backend.onrender.com/auth/login"
+"https://your-backend.onrender.com/products"
 ```
 
-Also add the frontend's Vercel URL to your backend's CORS config so cross-origin requests are allowed.
+Also add the frontend's Vercel URL to your backend's CORS config so cross-origin requests are allowed in production.
 
 ---
 
@@ -1343,7 +1355,9 @@ Also add the frontend's Vercel URL to your backend's CORS config so cross-origin
 
 | | Backend | Frontend |
 |---|---|---|
+| Platform | Render | Vercel |
 | What it is | Node.js + Express | React SPA |
-| Entry point | `index.js` | `index.html` |
-| Key config | Routes all URLs to Express | Rewrites all URLs to index.html |
-| Why needed | Vercel needs to know it's a Node app | Fixes 404 on page refresh in React Router |
+| Config file needed | None | `vercel.json` |
+| Environment variables | Set in Render dashboard | Set in Vercel dashboard |
+| Live URL format | `your-app.onrender.com` | `your-app.vercel.app` |
+| Free tier limit | Spins down after 15 min inactivity | Always on |
